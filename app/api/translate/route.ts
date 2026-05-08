@@ -1,3 +1,10 @@
+export const dynamic = 'force-dynamic'; // 确保不被静态缓存
+export const maxDuration = 60; // 增加超时时间到60秒（Vercel Pro/Hobby最高支持时间不等）
+
+// 注意：在 App Router 中，目前没有直接像 Pages Router 那样简单配置 bodyParser 的地方。
+// 如果 4MB 不够，通常建议将数据分片上传或使用流处理。
+// 对于 MVP，我们先保持代码简洁。
+
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
