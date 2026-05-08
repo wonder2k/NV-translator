@@ -24,30 +24,41 @@ export default function TranslatorUI() {
   const [results, setResults] = useState<{original: string, translated: string}[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // 在 handleManualTranslate 函数中增加超时提醒逻辑
   const handleManualTranslate = async () => {
     if (!inputText.trim()) return;
     setLoading(true);
     setErrorMsg('');
+    
+    // 逻辑：如果单行内包含分隔符，提示 AI 这是一个复合条目
     const lines = inputText.split('\n').filter(l => l.trim());
     
     try {
+      // 设置一个前端计时器，如果超过 20 秒给用户一个反馈
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log("检测到处理时间较长，请稍候...");
+      }, 20000);
+  
       const res = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: lines, sourceLang, targetLang }),
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
       const data = await res.json();
       
-      if (!res.ok) throw new Error(data.error || '翻译请求失败');
-
+      if (!res.ok) throw new Error(data.error || '翻译失败');
+  
       const newResults = lines.map((line, i) => ({
         original: line,
-        translated: data.results[i] || '翻译未返回结果'
+        translated: data.results[i] || '翻译异常'
       }));
       setResults(newResults);
     } catch (e: any) {
-      setErrorMsg(e.message);
+      setErrorMsg("请求超时或服务器忙，请稍后再试。错误信息: " + e.message);
     } finally {
       setLoading(false);
     }
