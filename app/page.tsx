@@ -1,23 +1,17 @@
-const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+"use client";
+import dynamic from 'next/dynamic';
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target?.result;
-      if (typeof bstr !== 'string') return; // 类型守卫
+// 使用 dynamic import 并禁用服务端渲染 (ssr: false)
+// 这是解决 "Unsupported Server Component type" 的万能药
+const TranslatorUI = dynamic(() => import('@/components/TranslatorUI'), { 
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+  )
+});
 
-      const wb = XLSX.read(bstr, { type: 'binary' });
-      const wsname = wb.SheetNames[0];
-      const ws = wb.Sheets[wsname];
-      // 强制转换类型防止 build 报错
-      const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-      
-      const toTranslate = data
-        .map(row => String(row[0] || '').trim())
-        .filter(Boolean);
-        
-      setInputText(toTranslate.join('\n'));
-    };
-    reader.readAsBinaryString(file);
-  };
+export default function Home() {
+  return <TranslatorUI />;
+}
