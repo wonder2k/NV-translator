@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // 延长 Vercel 超时限制
+export const maxDuration = 60;
 
 const openai = new OpenAI({
   apiKey: process.env.NVIDIA_API_KEY,
@@ -13,6 +13,11 @@ export async function POST(req: Request) {
   try {
     const { items, sourceLang, targetLang, model } = await req.json();
 
+    if (!process.env.NVIDIA_API_KEY) {
+      return NextResponse.json({ error: "API Key 未配置" }, { status: 500 });
+    }
+
+    // 针对物流场景的增强型 Prompt
     const systemPrompt = `你是一个精准的物流数据翻译器。
 任务：将用户提供的物流条目从 ${sourceLang} 翻译为 ${targetLang}。
 输入格式：每一行可能包含“地址、人名、物品名称”，它们以“、”或“;”分隔。
@@ -25,22 +30,18 @@ export async function POST(req: Request) {
 6. 响应速度优化：直接输出翻译结果，不要思考过程。`;
 
     const response = await openai.chat.completions.create({
+      // 使用前端传来的模型 ID，如果没有则默认使用 minimax
       model: model || "minimaxai/minimax-m2.7",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: items.join('\n') }
       ],
-      temperature: 0, // 设为 0 以获得最高确定性和最快速度
-      top_p: 1,
+      temperature: 0.1,
+      max_tokens: 4096,
     });
 
     const translatedText = response.choices[0]?.message?.content || '';
-    
-    // 逻辑：将返回的文本按行分割，确保与输入行数一致
-    const results = translatedText
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
+    const results = translatedText.split('\n').filter(l => l.trim().length > 0);
 
     return NextResponse.json({ results });
   } catch (error: any) {
