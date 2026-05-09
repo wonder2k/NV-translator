@@ -11,7 +11,7 @@ const openai = new OpenAI({
 
 export async function POST(req: Request) {
   try {
-    const { items, sourceLang, targetLang } = await req.json();
+    const { items, sourceLang, targetLang, model } = await req.json();
 
     const systemPrompt = `你是一个精准的物流数据翻译器。
 任务：将用户提供的物流条目从 ${sourceLang} 翻译为 ${targetLang}。
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 6. 响应速度优化：直接输出翻译结果，不要思考过程。`;
 
     const response = await openai.chat.completions.create({
-      model: "minimaxai/minimax-m2.7",
+      model: model || "minimaxai/minimax-m2.7",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: items.join('\n') }
